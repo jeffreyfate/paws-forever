@@ -1,8 +1,8 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
+import { GeistSans } from "geist/font/sans";  // ← this now resolves after install
 import "./globals.css";
-import { cn } from "@/lib/utils"; // shadcn helper if available, or create it
+import { cn } from "@/lib/utils"; // assuming shadcn created this
 
 export const metadata: Metadata = {
   title: "Paws Forever – In Loving Memory",
@@ -17,8 +17,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn(
-        "min-h-screen bg-gradient-to-b from-slate-50 to-white antialiased",
-        GeistSans.className
+        GeistSans.variable,          // ← apply variable font
+        "min-h-screen bg-gradient-to-b from-slate-50 to-white antialiased"
       )}>
         <div className="relative flex min-h-screen flex-col">
           <Header />
@@ -26,6 +26,6 @@ export default function RootLayout({
           <Footer />
         </div>
       </body>
-    </html>
+    </html>git add
   );
 }
