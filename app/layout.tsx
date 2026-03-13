@@ -1,11 +1,11 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";  // ← this now resolves after install
+import { GeistSans } from "geist/font/sans";
 import "./globals.css";
-import { cn } from "@/lib/utils"; // assuming shadcn created this
-
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/theme-provider"
+import { Header } from "@/components/Header"
+import { Footer } from "@/components/Footer"
 
 export const metadata: Metadata = {
   title: "Paws Forever – In Loving Memory",
@@ -20,14 +20,21 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn(
-        GeistSans.variable,          // ← apply variable font
-        "min-h-screen bg-gradient-to-b from-slate-50 to-white antialiased"
+        GeistSans.variable,
+        "min-h-screen antialiased"
       )}>
-        <div className="relative flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"     // respects OS preference
+          enableSystem
+          disableTransitionOnChange // smoother toggles
+        >
+          <div className="relative flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
