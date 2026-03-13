@@ -26,6 +26,6 @@ export default function RootLayout({
           <Footer />
         </div>
       </body>
-    </html>git add
+    </html>
   );
 }
