@@ -19,15 +19,15 @@ export default function Home() {
           />
         </div>
         
-        <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4">
+        <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
           In Loving Memory
         </h1>
-        <p className="text-xl text-slate-600 mb-6 max-w-2xl mx-auto">
+        <p className="text-xl text-muted-foreground mb-6 max-w-2xl mx-auto">
           To all the paws that walked beside us, brought endless joy, and left pawprints on our hearts forever.
         </p>
         
         <div className="flex flex-wrap justify-center gap-4">
-          <Button asChild size="lg" className="bg-amber-600 hover:bg-amber-700">
+          <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
             <Link href="/gallery">View Gallery</Link>
           </Button>
           <Button asChild variant="outline" size="lg">
