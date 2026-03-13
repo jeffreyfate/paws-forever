@@ -46,20 +46,22 @@ export default function Gallery() {
                       alt={img.alt}
                       fill
                       className="object-cover hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
                     />
                   </AspectRatio>
                 </CardContent>
               </Card>
             </DialogTrigger>
 
-            <DialogContent className="max-w-4xl w-[95vw] p-1 sm:p-4 bg-background border-none">
-              <div className="relative aspect-[4/3] sm:aspect-[16/9] md:aspect-[3/2] overflow-hidden rounded-md">
+            <DialogContent className="max-w-5xl w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[80vw] p-1 sm:p-4 bg-background border-none">
+              <div className="relative w-full h-[80vh] overflow-hidden rounded-md">  {/* ← increased height, w-full */}
                 <Image
                   src={img.src}
                   alt={img.alt}
                   fill
                   className="object-contain"
+                  sizes="90vw"
+                  quality={90}
                   priority
                 />
               </div>
