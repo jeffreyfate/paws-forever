@@ -4,6 +4,9 @@ import { GeistSans } from "geist/font/sans";  // ← this now resolves after ins
 import "./globals.css";
 import { cn } from "@/lib/utils"; // assuming shadcn created this
 
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+
 export const metadata: Metadata = {
   title: "Paws Forever – In Loving Memory",
   description: "A tribute to the dogs who filled our lives with joy",
