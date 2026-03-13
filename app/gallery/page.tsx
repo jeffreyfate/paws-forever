@@ -53,19 +53,31 @@ export default function Gallery() {
               </Card>
             </DialogTrigger>
 
-            <DialogContent className="max-w-5xl w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[80vw] p-1 sm:p-4 bg-background border-none">
-              <div className="relative w-full h-[80vh] overflow-hidden rounded-md">  {/* ← increased height, w-full */}
+            <DialogContent 
+              className="
+                max-w-[95vw]          // almost full viewport width
+                w-[95vw]              // fallback for smaller screens
+                sm:max-w-[90vw]       // slightly inset on small/medium
+                md:max-w-[85vw]       // more room on medium+
+                lg:max-w-6xl          // cap at ~1536px on large screens (or use max-w-7xl for even wider)
+                p-1 sm:p-4            // less padding on mobile
+                bg-background 
+                border-none 
+                rounded-md            // keep square-ish
+              "
+            >
+              <div className="relative w-full h-[80vh] md:h-[85vh] overflow-hidden rounded-md">
                 <Image
                   src={img.src}
                   alt={img.alt}
                   fill
                   className="object-contain"
-                  sizes="90vw"
-                  quality={90}
+                  sizes="(max-width: 768px) 95vw, (max-width: 1200px) 90vw, 85vw"  // generous sizes hint
+                  quality={92}  // balance quality/size
                   priority
                 />
               </div>
-              <p className="text-center text-muted-foreground mt-4">{img.alt}</p>
+              <p className="text-center text-muted-foreground mt-4 px-2">{img.alt}</p>
             </DialogContent>
           </Dialog>
         ))}
