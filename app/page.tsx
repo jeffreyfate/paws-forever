@@ -16,6 +16,7 @@ export default function Home() {
             height={600}
             className="rounded-full object-cover border-8 border-white shadow-2xl mx-auto"
             priority
+            unoptimized
           />
         </div>
         
