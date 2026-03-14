@@ -110,15 +110,17 @@ export default function GooglePhotosPicker({ onPhotoPicked }: GooglePhotosPicker
         }
         }, 2000);
 
-        // Only reject if popup closes AND user hasn't finished
-        const popupCheck = setInterval(() => {
-        if (popup?.closed && !userDone) {
-            clearInterval(interval);
-            clearInterval(popupCheck);
-            reject(new Error('Picker closed without selecting a photo'));
-        }
-        if (userDone) clearInterval(popupCheck);
-        }, 500);
+        // Only start checking popup after a 3 second grace period
+        setTimeout(() => {
+          const popupCheck = setInterval(() => {
+            if (popup?.closed && !userDone) {
+              clearInterval(interval);
+              clearInterval(popupCheck);
+              reject(new Error('Picker closed without selecting a photo'));
+            }
+            if (userDone) clearInterval(popupCheck);
+          }, 2000); // check every 2s instead of 500ms
+        }, 3000); // wait 3s before starting checks
     });
   }
 
