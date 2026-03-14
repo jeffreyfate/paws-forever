@@ -9,6 +9,8 @@ import {
   DialogContent,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import Link from 'next/link';
+import { Button } from "@/components/ui/button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { createClient } from '@/lib/supabase/server';
 
@@ -55,9 +57,13 @@ export default async function Gallery() {
       </p>
 
       {imagesWithUrls.length === 0 ? (
-        <p className="text-center text-muted-foreground">
-          No approved photos yet. Share some memories!
-        </p>
+        <div className="text-center text-muted-foreground py-32 flex flex-col items-center gap-4">
+          <p className="text-xl font-medium">No approved photos yet</p>
+          <p>Share some memories using the form!</p>
+          <Button asChild variant="outline">
+            <Link href="/submit">Submit a Memory</Link>
+          </Button>
+        </div>
       ) : (
         <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4 space-y-4">
           {imagesWithUrls.map((img) => (
