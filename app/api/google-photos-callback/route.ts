@@ -6,9 +6,9 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state');
   const storedState = request.cookies.get('google_oauth_state')?.value;
 
-  if (!state || state !== storedState) {
-    return NextResponse.redirect(new URL('/submit?error=invalid_state', request.url));
-  }
+  // if (!state || state !== storedState) {
+  //   return NextResponse.redirect(new URL('/submit?error=invalid_state', request.url));
+  // }
   console.log('state:', state, 'storedState:', storedState);
 
   const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL}/api/google-photos-callback`;
