@@ -10,21 +10,41 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { createClient } from '@/lib/supabase/server';
 
-// Placeholder images — replace with your real paths in /public/images/
-// For now, assume you have dog1.jpg, dog2.jpg, etc. in public/images/gallery/
-const galleryImages = [
-  { src: "/images/gallery/kenji001.jpg", alt: "Kenji", aspect: 3/4 },
-  { src: "/images/gallery/kenji002.jpg", alt: "Kenji hungry", aspect: 4/3 },
-  { src: "/images/gallery/kenji003.jpg", alt: "Kenji playmate", aspect: 4/3 },
-  { src: "/images/gallery/kenji004.jpg", alt: "Kenji sleeping", aspect: 4/3 },
-  { src: "/images/gallery/kenji005.jpg", alt: "Kenji pillow", aspect: 4/3 },
-  // Add more as you upload — keep filenames simple
-];
+export default async function Gallery() {
+  const supabase = await createClient();
 
-export default function Gallery() {
+  // Fetch approved photos
+  const { data: submissions, error } = await supabase
+    .from('submissions')
+    .select('id, file_path, caption, type, created_at')
+    .eq('approved', true)
+    .eq('type', 'photo')  // only photos for gallery
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Gallery fetch error:', error);
+    // fallback or error UI
+    return <div className="text-center text-destructive">Failed to load gallery. Please try again later.</div>;
+  }
+
+  // Generate signed URLs for private bucket (expires in 1 hour, adjust as needed)
+  const imagesWithUrls = await Promise.all(
+    (submissions || []).map(async (item) => {
+      const { data: signedUrlData } = await supabase.storage
+        .from('memories')
+        .createSignedUrl(item.file_path, 3600); // 1 hour
+
+      return {
+        id: item.id,
+        src: signedUrlData?.signedUrl || '/placeholder.jpg', // fallback
+        alt: item.caption || 'Submitted memory',
+        aspect: 4 / 3, // default; can store aspect ratio in DB later if needed
+      };
+    })
+  );
+
   return (
     <div className="container mx-auto px-4 py-12 md:py-16">
       <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-8 text-center">
@@ -34,66 +54,50 @@ export default function Gallery() {
         Moments that made our hearts full. Click any photo to see it larger.
       </p>
 
-      <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4 space-y-4">
-        {galleryImages.map((img, index) => (
-          <Dialog key={index}>
-            <DialogTrigger asChild>
-              <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer break-inside-avoid">
-                <CardContent className="p-0">
-                  <AspectRatio ratio={img.aspect as any}>
-                    <Image
-                      src={img.src}
-                      alt={img.alt}
-                      fill
-                      className="object-cover hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
-                    />
-                  </AspectRatio>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
+      {imagesWithUrls.length === 0 ? (
+        <p className="text-center text-muted-foreground">
+          No approved photos yet. Share some memories!
+        </p>
+      ) : (
+        <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4 space-y-4">
+          {imagesWithUrls.map((img) => (
+            <Dialog key={img.id}>
+              <DialogTrigger asChild>
+                <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer break-inside-avoid">
+                  <CardContent className="p-0">
+                    <AspectRatio ratio={img.aspect}>
+                      <Image
+                        src={img.src}
+                        alt={img.alt}
+                        fill
+                        className="object-cover hover:scale-105 transition-transform duration-300"
+                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+                      />
+                    </AspectRatio>
+                  </CardContent>
+                </Card>
+              </DialogTrigger>
 
-            <DialogContent 
-              className="
-                max-w-[95vw]          // almost full viewport width
-                w-[95vw]              // fallback for smaller screens
-                sm:max-w-[90vw]       // slightly inset on small/medium
-                md:max-w-[85vw]       // more room on medium+
-                lg:max-w-6xl          // cap at ~1536px on large screens (or use max-w-7xl for even wider)
-                p-1 sm:p-4            // less padding on mobile
-                bg-background 
-                border-none 
-                rounded-md            // keep square-ish
-              "
-            >
-              <div className="relative w-full h-[80vh] md:h-[85vh] overflow-hidden rounded-md">
-                <Image
-                  src={img.src}
-                  alt={img.alt}
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 768px) 95vw, (max-width: 1200px) 90vw, 85vw"  // generous sizes hint
-                  quality={92}  // balance quality/size
-                  priority
-                />
-              </div>
-              <p className="text-center text-muted-foreground mt-4 px-2">{img.alt}</p>
-            </DialogContent>
-          </Dialog>
-        ))}
-
-        {/* Optional: Skeleton placeholders while loading real images */}
-        {/* Remove once you have photos */}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Card key={`skeleton-${i}`} className="overflow-hidden border-none shadow-sm break-inside-avoid">
-            <CardContent className="p-0">
-              <AspectRatio ratio={4 / 3}>
-                <Skeleton className="w-full h-full" />
-              </AspectRatio>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              <DialogContent 
+                className="max-w-[95vw] w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-6xl p-1 sm:p-4 bg-background border-none rounded-md"
+              >
+                <div className="relative w-full h-[80vh] md:h-[85vh] overflow-hidden rounded-md">
+                  <Image
+                    src={img.src}
+                    alt={img.alt}
+                    fill
+                    className="object-contain"
+                    sizes="90vw"
+                    quality={92}
+                    priority
+                  />
+                </div>
+                <p className="text-center text-muted-foreground mt-4 px-2">{img.alt}</p>
+              </DialogContent>
+            </Dialog>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
