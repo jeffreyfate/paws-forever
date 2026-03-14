@@ -72,6 +72,8 @@ export default async function AdminPage({
     .select('id, email, caption, file_path, type, approved, created_at')
     .order('created_at', { ascending: false });
 
+  console.log('submissions:', submissions?.length, error);
+
   if (error) {
     return <div className="text-center text-destructive py-20">Error: {error.message}</div>;
   }
