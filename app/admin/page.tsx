@@ -1,7 +1,7 @@
 // app/admin/page.tsx
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,7 +65,7 @@ export default async function AdminPage({
   }
 
   // Logged in → show admin dashboard
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
 
   const { data: submissions, error } = await supabase
     .from('submissions')
@@ -98,7 +98,7 @@ export default async function AdminPage({
     const id = formData.get('id') as string;
     const action = formData.get('action') as 'approve' | 'reject';
 
-    const supabaseAction = await createClient();
+    const supabaseAction = await createAdminClient();
 
     if (action === 'approve') {
       await supabaseAction.from('submissions').update({ approved: true }).eq('id', id);
