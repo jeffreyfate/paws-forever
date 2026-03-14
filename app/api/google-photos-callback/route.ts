@@ -1,0 +1,56 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = request.nextUrl;
+  const code = searchParams.get('code');
+  const state = searchParams.get('state');
+  const storedState = request.cookies.get('google_oauth_state')?.value;
+
+  // Verify state
+  if (!state || state !== storedState) {
+    return NextResponse.redirect(new URL('/submit?error=invalid_state', request.url));
+  }
+
+  // Exchange code for access token
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code: code!,
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/api/google-photos-callback`,
+      grant_type: 'authorization_code',
+    }),
+  });
+
+  const { access_token } = await tokenRes.json();
+
+  // Create picker session
+  const sessionRes = await fetch('https://photospicker.googleapis.com/v1/sessions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      callbackUri: `${process.env.NEXT_PUBLIC_SITE_URL}/api/google-photos-picked`,
+    }),
+  });
+  const session = await sessionRes.json();
+
+  // Store token + session id in cookies for the picker callback
+  const response = NextResponse.redirect(session.pickerUri);
+  response.cookies.set('google_picker_token', access_token, {
+    httpOnly: true,
+    maxAge: 60 * 10,
+    path: '/',
+  });
+  response.cookies.set('google_picker_session', session.id, {
+    httpOnly: true,
+    maxAge: 60 * 10,
+    path: '/',
+  });
+
+  return response;
+}

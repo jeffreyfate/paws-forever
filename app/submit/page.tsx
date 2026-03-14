@@ -12,6 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import GooglePhotosPicker from '@/components/GooglePhotosPicker';
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email' }).optional().or(z.literal('')),
@@ -97,6 +99,21 @@ export default function SubmitPage() {
       setIsSubmitting(false);
     }
   }
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const filePath = searchParams.get('filePath');
+    const error = searchParams.get('error');
+
+    if (filePath) {
+      setGoogleFilePath(filePath);
+      toast.success('Photo imported from Google Photos!');
+    }
+    if (error) {
+      toast.error('Google Photos error', { description: error });
+    }
+  }, [searchParams]);
 
   return (
     <div className="container mx-auto px-4 py-12 md:py-16 max-w-2xl">
