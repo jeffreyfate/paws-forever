@@ -25,7 +25,6 @@ export default function RootLayout({
         GeistSans.variable,
         "min-h-screen antialiased"
       )}>
-        <Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"     // respects OS preference

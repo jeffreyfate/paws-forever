@@ -14,26 +14,18 @@ export async function POST(request: NextRequest) {
     let type: string;
 
     if (contentType.includes('application/json')) {
+      // YouTube path
       const body = await request.json();
       email = body.email || null;
       caption = body.caption;
-      type = body.type ?? 'photo';
+      youtubeUrl = body.youtubeUrl;
+      type = 'video';
 
-      if (type === 'video') {
-        // YouTube path
-        youtubeUrl = body.youtubeUrl;
-        if (!youtubeUrl || !caption) {
-          return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-        }
-      } else {
-        // Google Photos path — file already uploaded to Supabase
-        filePath = body.filePath;
-        if (!filePath || !caption) {
-          return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-        }
+      if (!youtubeUrl || !caption) {
+        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
       }
     } else {
-      // Regular file upload path
+      // File upload path
       const formData = await request.formData();
       email = formData.get('email') as string | null;
       caption = formData.get('caption') as string;

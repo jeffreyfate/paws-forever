@@ -1,47 +1,20 @@
 // app/submit/page.tsx
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
-import GooglePhotosPicker from '@/components/GooglePhotosPicker';
-
-function GooglePhotosHandler({
-  onFilePath,
-  onError,
-}: {
-  onFilePath: (path: string) => void;
-  onError: (msg: string) => void;
-}) {
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const filePath = searchParams.get('filePath');
-    const error = searchParams.get('error');
-    if (filePath) onFilePath(filePath);
-    if (error) onError(error);
-  }, [searchParams]);
-
-  return null;
-}
 
 function extractYouTubeId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/\s]+)/,
-  ];
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
-  return null;
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/\s]+)/);
+  return match ? match[1] : null;
 }
 
 const formSchema = z.object({
@@ -62,12 +35,10 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-type MediaMode = 'file' | 'google' | 'youtube';
+type MediaMode = 'file' | 'youtube';
 
 export default function SubmitPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [googleFilePath, setGoogleFilePath] = useState<string | null>(null);
   const [mediaMode, setMediaMode] = useState<MediaMode>('file');
 
   const form = useForm<FormValues>({
@@ -80,19 +51,9 @@ export default function SubmitPage() {
   const youtubeUrl = watch('youtubeUrl') ?? '';
   const youtubeId = extractYouTubeId(youtubeUrl);
 
-  function handlePhotoPicked(filePath: string) {
-    setGoogleFilePath(filePath);
-    setMediaMode('google');
-    toast.success('Photo imported!', { description: 'Now add a caption and submit.' });
-  }
-
   async function onSubmit(values: FormValues) {
     if (mediaMode === 'file' && !values.file) {
       toast.error('Please select a photo to upload');
-      return;
-    }
-    if (mediaMode === 'google' && !googleFilePath) {
-      toast.error('Please pick a photo from Google Photos');
       return;
     }
     if (mediaMode === 'youtube' && !values.youtubeUrl) {
@@ -112,19 +73,6 @@ export default function SubmitPage() {
             caption: values.caption,
             youtubeUrl: values.youtubeUrl,
             type: 'video',
-          }),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Submission failed');
-      } else if (mediaMode === 'google') {
-        const response = await fetch('/api/submit-memory', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: values.email || '',
-            caption: values.caption,
-            filePath: googleFilePath,
-            type: 'photo',
           }),
         });
         const result = await response.json();
@@ -149,7 +97,6 @@ export default function SubmitPage() {
       });
 
       reset();
-      setGoogleFilePath(null);
       setMediaMode('file');
     } catch (err: any) {
       toast.error('Submission failed', {
@@ -163,22 +110,11 @@ export default function SubmitPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 md:py-16 max-w-2xl">
-      <Suspense fallback={null}>
-        <GooglePhotosHandler
-          onFilePath={(path) => {
-            setGoogleFilePath(path);
-            setMediaMode('google');
-            toast.success('Photo imported from Google Photos!');
-          }}
-          onError={(msg) => toast.error('Google Photos error', { description: msg })}
-        />
-      </Suspense>
-
       <Card className="border-none shadow-md">
         <CardHeader>
           <CardTitle className="text-3xl">Share a Memory</CardTitle>
           <CardDescription>
-            Upload a photo, pick from Google Photos, or share a YouTube video. All submissions are reviewed before appearing publicly.
+            Upload a photo or share a YouTube video. All submissions are reviewed before appearing publicly.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -198,34 +134,28 @@ export default function SubmitPage() {
               {errors.caption && <p className="text-sm text-destructive">{errors.caption.message}</p>}
             </div>
 
-            {/* Media — three options */}
+            {/* Media — two options */}
             <div className="space-y-3">
               <Label>Photo or Video</Label>
 
-              {/* Mode tabs */}
               <div className="flex rounded-md border overflow-hidden text-sm">
-                {(['file', 'google', 'youtube'] as MediaMode[]).map((mode) => (
+                {(['file', 'youtube'] as MediaMode[]).map((mode) => (
                   <button
                     key={mode}
                     type="button"
-                    onClick={() => {
-                      setMediaMode(mode);
-                      setGoogleFilePath(null);
-                    }}
+                    onClick={() => setMediaMode(mode)}
                     className={`flex-1 py-2 px-3 transition-colors ${
                       mediaMode === mode
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-background text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    {mode === 'file' && '📁 Upload'}
-                    {mode === 'google' && '📷 Google Photos'}
-                    {mode === 'youtube' && '▶️ YouTube'}
+                    {mode === 'file' && '📁 Upload Photo'}
+                    {mode === 'youtube' && '▶️ YouTube Video'}
                   </button>
                 ))}
               </div>
 
-              {/* File upload */}
               {mediaMode === 'file' && (
                 <Controller
                   control={control}
@@ -243,25 +173,6 @@ export default function SubmitPage() {
                 />
               )}
 
-              {/* Google Photos */}
-              {mediaMode === 'google' && (
-                googleFilePath ? (
-                  <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                    <span className="text-muted-foreground">✓ Photo imported from Google Photos</span>
-                    <button
-                      type="button"
-                      className="text-destructive text-xs"
-                      onClick={() => setGoogleFilePath(null)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ) : (
-                  <GooglePhotosPicker onPhotoPicked={handlePhotoPicked} />
-                )
-              )}
-
-              {/* YouTube */}
               {mediaMode === 'youtube' && (
                 <div className="space-y-3">
                   <Input
@@ -271,7 +182,6 @@ export default function SubmitPage() {
                   {errors.youtubeUrl && (
                     <p className="text-sm text-destructive">{errors.youtubeUrl.message}</p>
                   )}
-                  {/* Preview */}
                   {youtubeId && (
                     <div className="aspect-video rounded-md overflow-hidden">
                       <iframe
@@ -291,7 +201,6 @@ export default function SubmitPage() {
               {errors.file && <p className="text-sm text-destructive">{errors.file.message}</p>}
               <p className="text-sm text-muted-foreground">
                 {mediaMode === 'file' && 'Max 10MB. JPG/PNG/WebP or MP4.'}
-                {mediaMode === 'google' && 'Pick a photo directly from your Google Photos library.'}
                 {mediaMode === 'youtube' && 'Paste a YouTube video URL to share a video memory.'}
               </p>
             </div>
