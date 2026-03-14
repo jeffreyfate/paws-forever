@@ -1,10 +1,11 @@
 // app/submit/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,8 +13,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import GooglePhotosPicker from '@/components/GooglePhotosPicker';
-import { useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+
+function GooglePhotosHandler({
+  onFilePath,
+  onError,
+}: {
+  onFilePath: (path: string) => void;
+  onError: (msg: string) => void;
+}) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const filePath = searchParams.get('filePath');
+    const error = searchParams.get('error');
+    if (filePath) onFilePath(filePath);
+    if (error) onError(error);
+  }, [searchParams]);
+
+  return null;
+}
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email' }).optional().or(z.literal('')),
@@ -23,14 +41,14 @@ const formSchema = z.object({
     .refine((file) => ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'].includes(file.type), {
       message: 'Only JPG, PNG, WebP images or MP4 videos allowed',
     })
-    .optional(), // ← now optional since Google Photos bypasses this
+    .optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 export default function SubmitPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [googleFilePath, setGoogleFilePath] = useState<string | null>(null); // ← holds path from Google Photos
+  const [googleFilePath, setGoogleFilePath] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -45,7 +63,6 @@ export default function SubmitPage() {
   }
 
   async function onSubmit(values: FormValues) {
-    // Must have either a file upload or a Google Photos import
     if (!values.file && !googleFilePath) {
       toast.error('Please select a photo or pick from Google Photos');
       return;
@@ -55,7 +72,6 @@ export default function SubmitPage() {
 
     try {
       if (googleFilePath) {
-        // Google Photos path — file is already in Supabase, just insert the record
         const response = await fetch('/api/submit-memory', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -69,7 +85,6 @@ export default function SubmitPage() {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Submission failed');
       } else {
-        // Regular file upload path
         const formData = new FormData();
         formData.append('email', values.email || '');
         formData.append('caption', values.caption);
@@ -100,23 +115,18 @@ export default function SubmitPage() {
     }
   }
 
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const filePath = searchParams.get('filePath');
-    const error = searchParams.get('error');
-
-    if (filePath) {
-      setGoogleFilePath(filePath);
-      toast.success('Photo imported from Google Photos!');
-    }
-    if (error) {
-      toast.error('Google Photos error', { description: error });
-    }
-  }, [searchParams]);
-
   return (
     <div className="container mx-auto px-4 py-12 md:py-16 max-w-2xl">
+      <Suspense fallback={null}>
+        <GooglePhotosHandler
+          onFilePath={(path) => {
+            setGoogleFilePath(path);
+            toast.success('Photo imported from Google Photos!');
+          }}
+          onError={(msg) => toast.error('Google Photos error', { description: msg })}
+        />
+      </Suspense>
+
       <Card className="border-none shadow-md">
         <CardHeader>
           <CardTitle className="text-3xl">Share a Memory</CardTitle>
@@ -146,7 +156,6 @@ export default function SubmitPage() {
               <Label>Photo or Video</Label>
 
               {googleFilePath ? (
-                // Show confirmation when Google photo is picked
                 <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
                   <span className="text-muted-foreground">✓ Photo imported from Google Photos</span>
                   <button
