@@ -63,46 +63,40 @@ export default function GooglePhotosPicker({ onPhotoPicked }: GooglePhotosPicker
 
   async function pollSession(sessionId: string, token: string, popup: Window | null) {
     return new Promise<void>((resolve, reject) => {
-      const interval = setInterval(async () => {
-        try {
-          // Check if popup was closed
-          if (popup?.closed) {
-            clearInterval(interval);
-            reject(new Error('Picker closed without selecting a photo'));
-            return;
-          }
+        let userDone = false;
 
-          const res = await fetch(
+        const interval = setInterval(async () => {
+        try {
+            const res = await fetch(
             `https://photospicker.googleapis.com/v1/sessions/${sessionId}`,
             { headers: { Authorization: `Bearer ${token}` } }
-          );
-          const data = await res.json();
+            );
+            const data = await res.json();
 
-          if (data.mediaItemsSet) {
+            if (data.mediaItemsSet) {
             clearInterval(interval);
+            userDone = true;
             popup?.close();
 
-            // Get the picked items
             const itemsRes = await fetch(
-              `https://photospicker.googleapis.com/v1/mediaItems?sessionId=${sessionId}`,
-              { headers: { Authorization: `Bearer ${token}` } }
+                `https://photospicker.googleapis.com/v1/mediaItems?sessionId=${sessionId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
             );
             const itemsData = await itemsRes.json();
             const item = itemsData.mediaItems?.[0];
 
             if (!item) {
-              reject(new Error('No photo selected'));
-              return;
+                reject(new Error('No photo selected'));
+                return;
             }
 
-            // Step 5 — Send to server to download + upload to Supabase
             const importRes = await fetch('/api/import-google-photo', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                downloadUrl: `${item.mediaFile.baseUrl}=d`, // =d suffix forces download
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                downloadUrl: `${item.mediaFile.baseUrl}=d`,
                 mimeType: item.mediaFile.mimeType,
-              }),
+                }),
             });
 
             const importData = await importRes.json();
@@ -110,12 +104,22 @@ export default function GooglePhotosPicker({ onPhotoPicked }: GooglePhotosPicker
 
             onPhotoPicked(importData.filePath);
             resolve();
-          }
+            }
         } catch (err) {
-          clearInterval(interval);
-          reject(err);
+            clearInterval(interval);
+            reject(err);
         }
-      }, 2000); // poll every 2 seconds
+        }, 2000);
+
+        // Only reject if popup closes AND user hasn't finished
+        const popupCheck = setInterval(() => {
+        if (popup?.closed && !userDone) {
+            clearInterval(interval);
+            clearInterval(popupCheck);
+            reject(new Error('Picker closed without selecting a photo'));
+        }
+        if (userDone) clearInterval(popupCheck);
+        }, 500);
     });
   }
 
