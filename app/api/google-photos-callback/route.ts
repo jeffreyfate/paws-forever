@@ -6,10 +6,9 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state');
   const storedState = request.cookies.get('google_oauth_state')?.value;
 
-  // Temporarily disable state check
-  // if (!state || state !== storedState) {
-  //   return NextResponse.redirect(new URL('/submit?error=invalid_state', request.url));
-  // }
+  if (!state || state !== storedState) {
+    return NextResponse.redirect(new URL('/submit?error=invalid_state', request.url));
+  }
   console.log('state:', state, 'storedState:', storedState);
 
   const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL}/api/google-photos-callback`;
@@ -39,7 +38,7 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      callbackUri: `${process.env.NEXT_PUBLIC_SITE_URL}/api/google-photos-picked`,
+      redirectUri: `${process.env.NEXT_PUBLIC_SITE_URL}/api/google-photos-picked`,
     }),
   });
   const session = await sessionRes.json();
