@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const ext = item.mediaFile.mimeType.split('/')[1] ?? 'jpg';
   const filePath = `submissions/${crypto.randomUUID()}.${ext}`;
 
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   const { error } = await supabase.storage
     .from('memories')
     .upload(filePath, photoBuffer, {
