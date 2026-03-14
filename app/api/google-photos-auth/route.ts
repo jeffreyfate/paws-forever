@@ -22,6 +22,7 @@ export async function GET() {
     httpOnly: true,
     maxAge: 60 * 10, // 10 minutes
     path: '/',
+    sameSite: 'lax',
   });
 
   return response;

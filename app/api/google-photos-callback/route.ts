@@ -56,11 +56,13 @@ export async function GET(request: NextRequest) {
     httpOnly: true,
     maxAge: 60 * 10,
     path: '/',
+    sameSite: 'lax',
   });
   response.cookies.set('google_picker_session', session.id, {
     httpOnly: true,
     maxAge: 60 * 10,
     path: '/',
+    sameSite: 'lax',
   });
 
   return response;
