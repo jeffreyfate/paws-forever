@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cookies } from 'next/headers';
-import { isAdminAuthenticated, setAdminSession } from '@/lib/auth/simple'; // create this file
+import { clearAdminSession, isAdminAuthenticated, setAdminSession } from '@/lib/auth/simple';
 
 export default async function AdminPage({
   searchParams,
@@ -114,7 +114,7 @@ export default async function AdminPage({
         </h1>
         <form action={async () => {
           'use server';
-          cookies().delete('admin_session');
+          await clearAdminSession();
           redirect('/admin');
         }}>
           <Button type="submit" variant="outline" size="sm">
