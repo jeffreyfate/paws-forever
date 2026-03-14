@@ -9,19 +9,28 @@ export async function POST(request: NextRequest) {
   try {
     let email: string | null = null;
     let caption: string;
-    let filePath: string;
+    let filePath: string | null = null;
+    let youtubeUrl: string | null = null;
     let type: string;
 
     if (contentType.includes('application/json')) {
-      // Google Photos path — file already uploaded to Supabase
       const body = await request.json();
       email = body.email || null;
       caption = body.caption;
-      filePath = body.filePath;
       type = body.type ?? 'photo';
 
-      if (!filePath || !caption) {
-        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      if (type === 'video') {
+        // YouTube path
+        youtubeUrl = body.youtubeUrl;
+        if (!youtubeUrl || !caption) {
+          return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+      } else {
+        // Google Photos path — file already uploaded to Supabase
+        filePath = body.filePath;
+        if (!filePath || !caption) {
+          return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
       }
     } else {
       // Regular file upload path
@@ -34,19 +43,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
       }
 
-      // Generate unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       filePath = `submissions/${fileName}`;
       type = file.type.startsWith('video') ? 'video' : 'photo';
 
-      // Upload to Storage (bucket: memories, private)
       const { error: uploadError } = await supabase.storage
         .from('memories')
-        .upload(filePath, file, {
-          contentType: file.type,
-          upsert: false,
-        });
+        .upload(filePath, file, { contentType: file.type, upsert: false });
 
       if (uploadError) {
         console.error(uploadError);
@@ -54,20 +58,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Insert to DB with approved: false
     const { error: insertError } = await supabase
       .from('submissions')
       .insert({
         email: email || null,
         type,
         file_path: filePath,
+        youtube_url: youtubeUrl,
         caption,
         approved: false,
       });
 
     if (insertError) {
-      // Delete uploaded file if DB insert fails
-      await supabase.storage.from('memories').remove([filePath]);
+      if (filePath) await supabase.storage.from('memories').remove([filePath]);
       console.error(insertError);
       return NextResponse.json({ error: 'Database insert failed' }, { status: 500 });
     }

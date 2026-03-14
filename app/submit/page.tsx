@@ -33,6 +33,17 @@ function GooglePhotosHandler({
   return null;
 }
 
+function extractYouTubeId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/\s]+)/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email' }).optional().or(z.literal('')),
   caption: z.string().min(10, { message: 'Caption must be at least 10 characters' }).max(500),
@@ -42,36 +53,70 @@ const formSchema = z.object({
       message: 'Only JPG, PNG, WebP images or MP4 videos allowed',
     })
     .optional(),
+  youtubeUrl: z.string()
+    .refine((url) => !url || extractYouTubeId(url) !== null, {
+      message: 'Please enter a valid YouTube URL',
+    })
+    .optional()
+    .or(z.literal('')),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
+type MediaMode = 'file' | 'google' | 'youtube';
+
 export default function SubmitPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleFilePath, setGoogleFilePath] = useState<string | null>(null);
+  const [mediaMode, setMediaMode] = useState<MediaMode>('file');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: '', caption: '', file: undefined },
+    defaultValues: { email: '', caption: '', file: undefined, youtubeUrl: '' },
   });
 
-  const { register, handleSubmit, formState: { errors }, control, reset } = form;
+  const { register, handleSubmit, formState: { errors }, control, reset, watch } = form;
+
+  const youtubeUrl = watch('youtubeUrl') ?? '';
+  const youtubeId = extractYouTubeId(youtubeUrl);
 
   function handlePhotoPicked(filePath: string) {
     setGoogleFilePath(filePath);
+    setMediaMode('google');
     toast.success('Photo imported!', { description: 'Now add a caption and submit.' });
   }
 
   async function onSubmit(values: FormValues) {
-    if (!values.file && !googleFilePath) {
-      toast.error('Please select a photo or pick from Google Photos');
+    if (mediaMode === 'file' && !values.file) {
+      toast.error('Please select a photo to upload');
+      return;
+    }
+    if (mediaMode === 'google' && !googleFilePath) {
+      toast.error('Please pick a photo from Google Photos');
+      return;
+    }
+    if (mediaMode === 'youtube' && !values.youtubeUrl) {
+      toast.error('Please enter a YouTube URL');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      if (googleFilePath) {
+      if (mediaMode === 'youtube') {
+        const response = await fetch('/api/submit-memory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: values.email || '',
+            caption: values.caption,
+            youtubeUrl: values.youtubeUrl,
+            type: 'video',
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Submission failed');
+      } else if (mediaMode === 'google') {
         const response = await fetch('/api/submit-memory', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -105,6 +150,7 @@ export default function SubmitPage() {
 
       reset();
       setGoogleFilePath(null);
+      setMediaMode('file');
     } catch (err: any) {
       toast.error('Submission failed', {
         description: err.message || 'Something went wrong. Please try again.',
@@ -121,6 +167,7 @@ export default function SubmitPage() {
         <GooglePhotosHandler
           onFilePath={(path) => {
             setGoogleFilePath(path);
+            setMediaMode('google');
             toast.success('Photo imported from Google Photos!');
           }}
           onError={(msg) => toast.error('Google Photos error', { description: msg })}
@@ -131,7 +178,7 @@ export default function SubmitPage() {
         <CardHeader>
           <CardTitle className="text-3xl">Share a Memory</CardTitle>
           <CardDescription>
-            Upload a photo or short video and add a caption. All submissions are reviewed before appearing publicly.
+            Upload a photo, pick from Google Photos, or share a YouTube video. All submissions are reviewed before appearing publicly.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -151,48 +198,102 @@ export default function SubmitPage() {
               {errors.caption && <p className="text-sm text-destructive">{errors.caption.message}</p>}
             </div>
 
-            {/* File — two options */}
+            {/* Media — three options */}
             <div className="space-y-3">
               <Label>Photo or Video</Label>
 
-              {googleFilePath ? (
-                <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                  <span className="text-muted-foreground">✓ Photo imported from Google Photos</span>
+              {/* Mode tabs */}
+              <div className="flex rounded-md border overflow-hidden text-sm">
+                {(['file', 'google', 'youtube'] as MediaMode[]).map((mode) => (
                   <button
+                    key={mode}
                     type="button"
-                    className="text-destructive text-xs"
-                    onClick={() => setGoogleFilePath(null)}
+                    onClick={() => {
+                      setMediaMode(mode);
+                      setGoogleFilePath(null);
+                    }}
+                    className={`flex-1 py-2 px-3 transition-colors ${
+                      mediaMode === mode
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
                   >
-                    Remove
+                    {mode === 'file' && '📁 Upload'}
+                    {mode === 'google' && '📷 Google Photos'}
+                    {mode === 'youtube' && '▶️ YouTube'}
                   </button>
-                </div>
-              ) : (
-                <>
-                  <Controller
-                    control={control}
-                    name="file"
-                    render={({ field: { onChange, ...field } }) => (
-                      <Input
-                        id="file"
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,video/mp4"
-                        onChange={(e) => onChange(e.target.files?.[0])}
-                        {...field}
-                        value={undefined}
-                      />
-                    )}
-                  />
-                  <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-border" />
-                    <span className="text-xs text-muted-foreground">or</span>
-                    <div className="h-px flex-1 bg-border" />
+                ))}
+              </div>
+
+              {/* File upload */}
+              {mediaMode === 'file' && (
+                <Controller
+                  control={control}
+                  name="file"
+                  render={({ field: { onChange, ...field } }) => (
+                    <Input
+                      id="file"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,video/mp4"
+                      onChange={(e) => onChange(e.target.files?.[0])}
+                      {...field}
+                      value={undefined}
+                    />
+                  )}
+                />
+              )}
+
+              {/* Google Photos */}
+              {mediaMode === 'google' && (
+                googleFilePath ? (
+                  <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">✓ Photo imported from Google Photos</span>
+                    <button
+                      type="button"
+                      className="text-destructive text-xs"
+                      onClick={() => setGoogleFilePath(null)}
+                    >
+                      Remove
+                    </button>
                   </div>
+                ) : (
                   <GooglePhotosPicker onPhotoPicked={handlePhotoPicked} />
-                </>
+                )
+              )}
+
+              {/* YouTube */}
+              {mediaMode === 'youtube' && (
+                <div className="space-y-3">
+                  <Input
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    {...register('youtubeUrl')}
+                  />
+                  {errors.youtubeUrl && (
+                    <p className="text-sm text-destructive">{errors.youtubeUrl.message}</p>
+                  )}
+                  {/* Preview */}
+                  {youtubeId && (
+                    <div className="aspect-video rounded-md overflow-hidden">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src={`https://www.youtube.com/embed/${youtubeId}`}
+                        title="YouTube preview"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      />
+                    </div>
+                  )}
+                </div>
               )}
 
               {errors.file && <p className="text-sm text-destructive">{errors.file.message}</p>}
-              <p className="text-sm text-muted-foreground">Max 10MB. JPG/PNG/WebP or MP4.</p>
+              <p className="text-sm text-muted-foreground">
+                {mediaMode === 'file' && 'Max 10MB. JPG/PNG/WebP or MP4.'}
+                {mediaMode === 'google' && 'Pick a photo directly from your Google Photos library.'}
+                {mediaMode === 'youtube' && 'Paste a YouTube video URL to share a video memory.'}
+              </p>
             </div>
 
             <Button type="submit" disabled={isSubmitting} className="w-full">

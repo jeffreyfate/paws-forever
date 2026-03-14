@@ -7,8 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cookies } from 'next/headers';
 import { clearAdminSession, isAdminAuthenticated, setAdminSession } from '@/lib/auth/simple';
+
+function extractYouTubeId(url: string): string | null {
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/\s]+)/);
+  return match ? match[1] : null;
+}
 
 export default async function AdminPage({
   searchParams,
@@ -17,7 +21,6 @@ export default async function AdminPage({
 }) {
   const authenticated = await isAdminAuthenticated();
 
-  // If not logged in, show password form
   if (!authenticated) {
     return (
       <div className="container mx-auto px-4 py-16 max-w-md">
@@ -32,9 +35,7 @@ export default async function AdminPage({
             )}
             <form action={async (formData: FormData) => {
               'use server';
-
               const password = formData.get('password') as string;
-
               if (password === process.env.ADMIN_PASSWORD) {
                 await setAdminSession();
                 redirect('/admin');
@@ -45,17 +46,9 @@ export default async function AdminPage({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    name="password"
-                    placeholder="Enter password"
-                    required
-                  />
+                  <Input id="password" type="password" name="password" placeholder="Enter password" required />
                 </div>
-                <Button type="submit" className="w-full">
-                  Login
-                </Button>
+                <Button type="submit" className="w-full">Login</Button>
               </div>
             </form>
           </CardContent>
@@ -64,15 +57,12 @@ export default async function AdminPage({
     );
   }
 
-  // Logged in → show admin dashboard
   const supabase = await createAdminClient();
 
   const { data: submissions, error } = await supabase
     .from('submissions')
-    .select('id, email, caption, file_path, type, approved, created_at')
+    .select('id, email, caption, file_path, youtube_url, type, approved, created_at')
     .order('created_at', { ascending: false });
-
-  console.log('submissions:', submissions?.length, error);
 
   if (error) {
     return <div className="text-center text-destructive py-20">Error: {error.message}</div>;
@@ -84,20 +74,14 @@ export default async function AdminPage({
       const { data } = await supabase.storage
         .from('memories')
         .createSignedUrl(sub.file_path, 60 * 60);
-      console.log('file_path:', sub.file_path);
-      console.log('signedUrl:', data?.signedUrl);
-      console.log('signedUrl error:', error);
       return { ...sub, signedUrl: data?.signedUrl ?? null };
     })
   );
 
-  // Server Action for approve/reject
   async function handleApprove(formData: FormData) {
     'use server';
-
     const id = formData.get('id') as string;
     const action = formData.get('action') as 'approve' | 'reject';
-
     const supabaseAction = await createAdminClient();
 
     if (action === 'approve') {
@@ -118,7 +102,7 @@ export default async function AdminPage({
 
     revalidatePath('/admin');
     revalidatePath('/gallery');
-    revalidatePath('/memories');
+    revalidatePath('/videos');
   }
 
   return (
@@ -132,13 +116,11 @@ export default async function AdminPage({
           await clearAdminSession();
           redirect('/admin');
         }}>
-          <Button type="submit" variant="outline" size="sm">
-            Sign Out
-          </Button>
+          <Button type="submit" variant="outline" size="sm">Sign Out</Button>
         </form>
       </div>
 
-      {submissions?.length === 0 ? (
+      {submissionsWithUrls.length === 0 ? (
         <div className="text-center text-muted-foreground py-20">
           No submissions to review yet.
         </div>
@@ -157,48 +139,48 @@ export default async function AdminPage({
               </CardHeader>
 
               <CardContent className="space-y-4">
-                {sub.type === 'photo' ? (
-                    <div className="relative aspect-video rounded-md overflow-hidden bg-muted">
-                        <Image
-                            src={sub.signedUrl!}
-                            alt={sub.caption}
-                            width={640}
-                            height={360}
-                            className="w-full h-full object-cover"
-                            // sizes="(max-width: 768px) 100vw, 50vw" // optional, helps responsive
-                            // priority={false} // or true if above-the-fold
-                        />
-                    </div>
+                {sub.type === 'photo' && sub.signedUrl ? (
+                  <div className="relative aspect-video rounded-md overflow-hidden bg-muted">
+                    <Image
+                      src={sub.signedUrl!}
+                      alt={sub.caption}
+                      width={640}
+                      height={360}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : sub.type === 'video' && sub.youtube_url ? (
+                  <div className="aspect-video rounded-md overflow-hidden">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src={`https://www.youtube.com/embed/${extractYouTubeId(sub.youtube_url)}`}
+                      title={sub.caption}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
+                  </div>
                 ) : (
-                  <div className="aspect-video bg-muted rounded-md flex items-center justify-center text-muted-foreground">
-                    Video (preview not implemented)
+                  <div className="aspect-video bg-muted rounded-md flex items-center justify-center text-muted-foreground text-sm">
+                    No preview available
                   </div>
                 )}
 
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {sub.caption}
-                </p>
+                <p className="text-sm text-muted-foreground line-clamp-3">{sub.caption}</p>
 
                 <div className="flex gap-4">
                   <form action={handleApprove}>
                     <input type="hidden" name="id" value={sub.id} />
                     <input type="hidden" name="action" value="approve" />
-                    <Button
-                      type="submit"
-                      variant="default"
-                      className="flex-1"
-                      disabled={sub.approved}
-                    >
+                    <Button type="submit" variant="default" className="flex-1" disabled={sub.approved}>
                       {sub.approved ? 'Approved' : 'Approve'}
                     </Button>
                   </form>
-
                   <form action={handleApprove}>
                     <input type="hidden" name="id" value={sub.id} />
                     <input type="hidden" name="action" value="reject" />
-                    <Button type="submit" variant="destructive" className="flex-1">
-                      Reject
-                    </Button>
+                    <Button type="submit" variant="destructive" className="flex-1">Reject</Button>
                   </form>
                 </div>
 
