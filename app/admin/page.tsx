@@ -84,6 +84,9 @@ export default async function AdminPage({
       const { data } = await supabase.storage
         .from('memories')
         .createSignedUrl(sub.file_path, 60 * 60);
+      console.log('file_path:', sub.file_path);
+      console.log('signedUrl:', data?.signedUrl);
+      console.log('signedUrl error:', error);
       return { ...sub, signedUrl: data?.signedUrl ?? null };
     })
   );
