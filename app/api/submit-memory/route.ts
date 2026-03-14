@@ -1,9 +1,9 @@
 // app/api/submit-memory/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
-  const supabase = await createBrowserClient();
+  const supabase = await createAdminClient();
 
   try {
     const formData = await request.formData();
