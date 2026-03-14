@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }),
   });
 
-  const { access_token } = await tokenRes.json();
+  const { access_token, error: tokenError } = await tokenRes.json();
   console.log('token exchange:', { access_token: !!access_token, tokenError });
 
   // Create picker session
