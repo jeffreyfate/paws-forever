@@ -7,6 +7,12 @@ const nextConfig = {
         // omit 'search' to allow any query params (?path=..., ?other=...)
       },
     ],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+    ],
   },
 };
 

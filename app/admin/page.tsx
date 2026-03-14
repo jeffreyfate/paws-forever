@@ -76,6 +76,16 @@ export default async function AdminPage({
     return <div className="text-center text-destructive py-20">Error: {error.message}</div>;
   }
 
+  const submissionsWithUrls = await Promise.all(
+    (submissions ?? []).map(async (sub) => {
+      if (sub.type !== 'photo') return { ...sub, signedUrl: null };
+      const { data } = await supabase.storage
+        .from('memories')
+        .createSignedUrl(sub.file_path, 60 * 60);
+      return { ...sub, signedUrl: data?.signedUrl ?? null };
+    })
+  );
+
   // Server Action for approve/reject
   async function handleApprove(formData: FormData) {
     'use server';
@@ -129,7 +139,7 @@ export default async function AdminPage({
         </div>
       ) : (
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {submissions.map((sub) => (
+          {submissionsWithUrls.map((sub) => (
             <Card key={sub.id} className="overflow-hidden border-none shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg">
@@ -145,7 +155,7 @@ export default async function AdminPage({
                 {sub.type === 'photo' ? (
                     <div className="relative aspect-video rounded-md overflow-hidden bg-muted">
                         <Image
-                            src={`/api/signed-url?path=${encodeURIComponent(sub.file_path)}`}
+                            src={sub.signedUrl!}
                             alt={sub.caption}
                             width={640}
                             height={360}
