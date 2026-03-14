@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
   });
 
   const { access_token } = await tokenRes.json();
+  console.log('token exchange:', { access_token: !!access_token, tokenError });
 
   // Create picker session
   const sessionRes = await fetch('https://photospicker.googleapis.com/v1/sessions', {
@@ -38,6 +39,11 @@ export async function GET(request: NextRequest) {
     }),
   });
   const session = await sessionRes.json();
+  console.log('picker session:', JSON.stringify(session));
+
+  if (!session.pickerUri) {
+    return NextResponse.redirect(new URL('/submit?error=picker_session_failed', request.url));
+  }
 
   // Store token + session id in cookies for the picker callback
   const response = NextResponse.redirect(session.pickerUri);
