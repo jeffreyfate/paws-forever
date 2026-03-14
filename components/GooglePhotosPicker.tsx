@@ -106,6 +106,7 @@ export default function GooglePhotosPicker({ onPhotoPicked }: GooglePhotosPicker
             resolve();
             }
         } catch (err) {
+            console.error('Poll error:', err);
             clearInterval(interval);
             reject(err);
         }
