@@ -7,6 +7,9 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
 import { Toaster } from "@/components/ui/sonner";
+import Script from "next/script";
+
+<Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" />
 
 export const metadata: Metadata = {
   title: "Paws Forever – Forever Wagging Tails",
