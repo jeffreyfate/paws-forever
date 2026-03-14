@@ -21,6 +21,11 @@ export async function setAdminSession() {
 }
 
 export async function clearAdminSession() {
+  console.log('clearAdminSession called');
   const cookieStore = await cookies();
+  const before = cookieStore.get(COOKIE_NAME)?.value;
+  console.log('Cookie before delete:', before);
   cookieStore.delete(COOKIE_NAME);
+  const after = cookieStore.get(COOKIE_NAME)?.value;
+  console.log('Cookie after delete:', after);
 }
