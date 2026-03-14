@@ -56,6 +56,14 @@ export default async function Gallery() {
         Moments that made our hearts full. Click any photo to see it larger.
       </p>
 
+      <div className="text-center mb-12">
+        <Button asChild variant="outline" size="lg">
+          <Link href="/submit">
+            Share a Memory →
+          </Link>
+        </Button>
+      </div>
+
       {imagesWithUrls.length === 0 ? (
         <div className="text-center text-muted-foreground py-32 flex flex-col items-center gap-4">
           <p className="text-xl font-medium">No approved photos yet</p>
