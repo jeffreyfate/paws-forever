@@ -10,7 +10,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "Paws Forever – Forever Wagging Tails",
+  title: "Paws Forever - For the hydrant inspectors and mailman chasers",
   description: "A tribute to the dogs who filled our lives with joy",
 };
 
