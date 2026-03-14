@@ -143,14 +143,17 @@ export default async function AdminPage({
 
               <CardContent className="space-y-4">
                 {sub.type === 'photo' ? (
-                  <div className="relative aspect-video rounded-md overflow-hidden bg-muted">
-                    <Image
-                      src={`/api/signed-url?path=${encodeURIComponent(sub.file_path)}`}
-                      alt={sub.caption}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
+                    <div className="relative aspect-video rounded-md overflow-hidden bg-muted">
+                        <img
+                            src={`/api/signed-url?path=${encodeURIComponent(sub.file_path)}`}
+                            alt={sub.caption}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            // Optional: add width/height for better layout shift prevention
+                            width={640}
+                            height={360}
+                        />
+                    </div>
                 ) : (
                   <div className="aspect-video bg-muted rounded-md flex items-center justify-center text-muted-foreground">
                     Video (preview not implemented)

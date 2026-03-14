@@ -1,15 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    // Allow query strings on your local API routes
+    localPatterns: [
+      {
+        pathname: '/api/signed-url',
+        search: 'path=*',  // explicit wildcard for ?path=...
+      },
+    ],
+
+    // If you haven't already (for Supabase external signed URLs)
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',  // allow all for testing (secure later)
-        // or specific: hostname: 'your-project-ref.supabase.co',
+        hostname: '**',                     // or specifically 'your-project.supabase.co'
       },
     ],
-    // Optional: disable optimization temporarily to debug
-    // unoptimized: true,
   },
 };
 
