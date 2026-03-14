@@ -144,14 +144,14 @@ export default async function AdminPage({
               <CardContent className="space-y-4">
                 {sub.type === 'photo' ? (
                     <div className="relative aspect-video rounded-md overflow-hidden bg-muted">
-                        <img
+                        <Image
                             src={`/api/signed-url?path=${encodeURIComponent(sub.file_path)}`}
                             alt={sub.caption}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            // Optional: add width/height for better layout shift prevention
                             width={640}
                             height={360}
+                            className="w-full h-full object-cover"
+                            // sizes="(max-width: 768px) 100vw, 50vw" // optional, helps responsive
+                            // priority={false} // or true if above-the-fold
                         />
                     </div>
                 ) : (
