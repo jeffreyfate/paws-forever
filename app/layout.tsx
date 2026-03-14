@@ -9,8 +9,6 @@ import { Footer } from "@/components/Footer"
 import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
 
-<Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" />
-
 export const metadata: Metadata = {
   title: "Paws Forever – Forever Wagging Tails",
   description: "A tribute to the dogs who filled our lives with joy",
@@ -27,6 +25,7 @@ export default function RootLayout({
         GeistSans.variable,
         "min-h-screen antialiased"
       )}>
+        <Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"     // respects OS preference
