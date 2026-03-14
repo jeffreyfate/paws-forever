@@ -68,8 +68,7 @@ export default function GooglePhotosPicker({ onPhotoPicked }: GooglePhotosPicker
         const interval = setInterval(async () => {
         try {
             const res = await fetch(
-            `https://photospicker.googleapis.com/v1/sessions/${sessionId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
+              `/api/poll-picker-session?sessionId=${sessionId}&token=${token}`
             );
             const data = await res.json();
 
@@ -79,8 +78,7 @@ export default function GooglePhotosPicker({ onPhotoPicked }: GooglePhotosPicker
             popup?.close();
 
             const itemsRes = await fetch(
-                `https://photospicker.googleapis.com/v1/mediaItems?sessionId=${sessionId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
+              `/api/poll-picker-session/items?sessionId=${sessionId}&token=${token}`
             );
             const itemsData = await itemsRes.json();
             const item = itemsData.mediaItems?.[0];
