@@ -2,36 +2,81 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { getUser } from '@/lib/supabase/auth'; // your helper from earlier
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { cookies } from 'next/headers';
+import { isAdminAuthenticated, setAdminSession } from '@/lib/auth/simple'; // create this file
 
-export default async function AdminPage() {
-  const user = await getUser();
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: { error?: string };
+}) {
+  const authenticated = isAdminAuthenticated();
 
-  // Redirect to sign-in if not authenticated
-  if (!user) {
-    redirect('/signin?redirect=/admin');
+  // If not logged in, show password form
+  if (!authenticated) {
+    return (
+      <div className="container mx-auto px-4 py-16 max-w-md">
+        <Card>
+          <CardHeader>
+            <CardTitle>Admin Login</CardTitle>
+            <CardDescription>Enter the admin password to continue.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {searchParams.error && (
+              <p className="text-destructive mb-4">Incorrect password. Try again.</p>
+            )}
+            <form action={async (formData: FormData) => {
+              'use server';
+
+              const password = formData.get('password') as string;
+
+              if (password === process.env.ADMIN_PASSWORD) {
+                setAdminSession();
+                redirect('/admin');
+              } else {
+                redirect('/admin?error=invalid');
+              }
+            }}>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    name="password"
+                    placeholder="Enter password"
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  Login
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
+  // Logged in → show admin dashboard
   const supabase = await createClient();
 
-  // Fetch all submissions
   const { data: submissions, error } = await supabase
     .from('submissions')
     .select('id, email, caption, file_path, type, approved, created_at')
     .order('created_at', { ascending: false });
 
   if (error) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center text-destructive">
-        Error loading submissions: {error.message}
-      </div>
-    );
+    return <div className="text-center text-destructive py-20">Error: {error.message}</div>;
   }
 
-  // Server Action: Approve or Reject
+  // Server Action for approve/reject
   async function handleApprove(formData: FormData) {
     'use server';
 
@@ -41,12 +86,8 @@ export default async function AdminPage() {
     const supabaseAction = await createClient();
 
     if (action === 'approve') {
-      await supabaseAction
-        .from('submissions')
-        .update({ approved: true })
-        .eq('id', id);
+      await supabaseAction.from('submissions').update({ approved: true }).eq('id', id);
     } else if (action === 'reject') {
-      // Optional: delete the file from storage
       const { data } = await supabaseAction
         .from('submissions')
         .select('file_path')
@@ -60,7 +101,6 @@ export default async function AdminPage() {
       await supabaseAction.from('submissions').delete().eq('id', id);
     }
 
-    // Refresh the pages
     revalidatePath('/admin');
     revalidatePath('/gallery');
     revalidatePath('/memories');
@@ -72,9 +112,15 @@ export default async function AdminPage() {
         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
           Admin – Review Submissions
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Logged in as {user.email}
-        </p>
+        <form action={async () => {
+          'use server';
+          cookies().delete('admin_session');
+          redirect('/admin');
+        }}>
+          <Button type="submit" variant="outline" size="sm">
+            Sign Out
+          </Button>
+        </form>
       </div>
 
       {submissions?.length === 0 ? (
@@ -96,7 +142,6 @@ export default async function AdminPage() {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                {/* Preview */}
                 {sub.type === 'photo' ? (
                   <div className="relative aspect-video rounded-md overflow-hidden bg-muted">
                     <Image
@@ -108,7 +153,7 @@ export default async function AdminPage() {
                   </div>
                 ) : (
                   <div className="aspect-video bg-muted rounded-md flex items-center justify-center text-muted-foreground">
-                    Video preview not available
+                    Video (preview not implemented)
                   </div>
                 )}
 
@@ -116,7 +161,6 @@ export default async function AdminPage() {
                   {sub.caption}
                 </p>
 
-                {/* Approve / Reject buttons */}
                 <div className="flex gap-4">
                   <form action={handleApprove}>
                     <input type="hidden" name="id" value={sub.id} />
@@ -134,11 +178,7 @@ export default async function AdminPage() {
                   <form action={handleApprove}>
                     <input type="hidden" name="id" value={sub.id} />
                     <input type="hidden" name="action" value="reject" />
-                    <Button
-                      type="submit"
-                      variant="destructive"
-                      className="flex-1"
-                    >
+                    <Button type="submit" variant="destructive" className="flex-1">
                       Reject
                     </Button>
                   </form>
