@@ -1,8 +1,8 @@
 // lib/supabase/auth.ts
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export async function getSession() {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { data: { session } } = await supabase.auth.getSession();
   return session;
 }

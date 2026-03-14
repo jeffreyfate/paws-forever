@@ -5,10 +5,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { createClient } from '@/lib/supabase/server';
+import { createBrowserClient } from '@/lib/supabase/client';
 
 export default async function Memories() {
-  const supabase = await createClient();
+  const supabase = await createBrowserClient();
 
   const { data: submissions, error } = await supabase
     .from('submissions')

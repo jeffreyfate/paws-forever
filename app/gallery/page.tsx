@@ -12,10 +12,10 @@ import {
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { createClient } from '@/lib/supabase/server';
+import { createBrowserClient } from '@/lib/supabase/client';
 
 export default async function Gallery() {
-  const supabase = await createClient();
+  const supabase = await createBrowserClient();
 
   // Fetch approved photos
   const { data: submissions, error } = await supabase
