@@ -1,7 +1,7 @@
 // lib/auth/simple.ts
 import { cookies } from 'next/headers';
 
-const COOKIE_NAME = 'admin_session';
+export const COOKIE_NAME = 'admin_session';
 const COOKIE_VALUE = 'authenticated'; // simple flag
 
 export async function isAdminAuthenticated() {
