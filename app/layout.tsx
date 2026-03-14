@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Paws Forever – In Loving Memory",
@@ -34,6 +35,7 @@ export default function RootLayout({
             <main className="flex-1">{children}</main>
             <Footer />
           </div>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
