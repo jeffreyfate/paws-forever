@@ -15,7 +15,7 @@ export default async function AdminPage({
 }: {
   searchParams: { error?: string };
 }) {
-  const authenticated = isAdminAuthenticated();
+  const authenticated = await isAdminAuthenticated();
 
   // If not logged in, show password form
   if (!authenticated) {
@@ -36,7 +36,7 @@ export default async function AdminPage({
               const password = formData.get('password') as string;
 
               if (password === process.env.ADMIN_PASSWORD) {
-                setAdminSession();
+                await setAdminSession();
                 redirect('/admin');
               } else {
                 redirect('/admin?error=invalid');
