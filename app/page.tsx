@@ -20,10 +20,10 @@ export default function Home() {
         </div>
         
         <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-          In Loving Memory
+          Forever Wagging Tails
         </h1>
         <p className="text-xl text-muted-foreground mb-6 max-w-2xl mx-auto">
-          To all the paws that walked beside us, brought endless joy, and left pawprints on our hearts forever.
+          Photos and memories of the dogs who made every day better. They may be gone, but the love and chaos they left behind is forever.
         </p>
         
         <div className="flex flex-wrap justify-center gap-4">
@@ -34,13 +34,6 @@ export default function Home() {
             <Link href="/memories">Read Memories</Link>
           </Button>
         </div>
-      </section>
-
-      {/* Quick intro or quote */}
-      <section className="max-w-3xl mx-auto text-center">
-        <blockquote className="text-lg italic text-slate-700 border-l-4 border-amber-500 pl-6 py-2">
-          "The risk of love is loss, and the price of loss is grief – but the pain of grief is only a shadow when compared with the pain of never risking love." – Hilary Stanton Zunin
-        </blockquote>
       </section>
     </div>
   );

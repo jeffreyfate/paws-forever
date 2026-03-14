@@ -9,7 +9,7 @@ import { Footer } from "@/components/Footer"
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "Paws Forever – In Loving Memory",
+  title: "Paws Forever – Forever Wagging Tails",
   description: "A tribute to the dogs who filled our lives with joy",
 };
 
